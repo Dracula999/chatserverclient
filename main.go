@@ -1,37 +1,44 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/Dracula999/chatserverclient"
-	"github.com/gorilla/websocket"
+	"net"
+	"os"
 )
 
-type ClientManager struct {
-	clients    map[*Client]bool
-	broadcast  chan []byte
-	register   chan *Client
-	unregister chan *Client
-}
-
 type Client struct {
-	id     string
-	socket *websocket.Conn
-	send   chan []byte
-}
-
-type Message struct {
-	Sender    string `json:"sender,omitempty"`
-	Recipient string `json:"recipient,omitempty"`
-	Content   string `json:"content,omitempty"`
-}
-
-var manager = ClientManager{
-	broadcast:  make(chan []byte),
-	register:   make(chan *Client),
-	unregister: make(chan *Client),
-	clients:    make(map[*Client]bool)
+	name string
+	conn net.Conn
 }
 
 func main() {
-	fmt.Println("Hello")
+	listener, err := net.Listen("tcp", ":3333")
+	handleError(err)
+	defer listener.Close()
+	for {
+		conn, err := listener.Accept()
+		handleError(err)
+		go manageClient(conn)
+	}
+}
+
+func manageClient(conn net.Conn) {
+	for {
+		// will listen for message to process ending in newline (\n)
+		message, _ := bufio.NewReader(conn).ReadString('\n')
+		// output message received
+		fmt.Print("Message Received:", string(message))
+		// sample process for string received
+		newmessage := "Hello"
+		// send new string back to client
+		conn.Write([]byte(newmessage + "\n"))
+	}
+}
+
+func handleError(err error) {
+	if err != nil {
+		fmt.Println("Error accepting: ", err.Error())
+		os.Exit(1)
+	}
 }
