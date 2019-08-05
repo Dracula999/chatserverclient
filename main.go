@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 )
 
 type Client struct {
@@ -12,12 +13,21 @@ type Client struct {
 	conn net.Conn
 }
 
+var clients []Client
+
 func main() {
 	listener, err := net.Listen("tcp", ":3333")
 	handleError(err)
 	defer listener.Close()
+	clientNum := 1
 	for {
 		conn, err := listener.Accept()
+		cl := Client{name: strconv.Itoa(clientNum), conn: conn}
+		greetMsg := "Client " + cl.name + " has joined chat."
+		for _, client := range clients {
+			client.conn.Write([]byte(greetMsg))
+		}
+		clients = append(clients, cl)
 		handleError(err)
 		go manageClient(conn)
 	}
@@ -30,9 +40,9 @@ func manageClient(conn net.Conn) {
 		// output message received
 		fmt.Print("Message Received:", string(message))
 		// sample process for string received
-		newmessage := "Hello"
-		// send new string back to client
-		conn.Write([]byte(newmessage + "\n"))
+		for _, client := range clients {
+			client.conn.Write([]byte(message + "\n"))
+		}
 	}
 }
 
